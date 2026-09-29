@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>内容范式雷达 · Paradigm Radar</title>
+<style>
+:root{
+  --bg:#0b0e14; --panel:#131822; --panel2:#1a202c; --line:#242c3a;
+  --txt:#e6ebf5; --dim:#8b96ab; --dim2:#5f6a7e;
+  --red:#ff2e4d; --amber:#ffb020; --green:#28c76f; --blue:#4d8dff; --purple:#a06bff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--txt);font:14px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding-bottom:60px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1320px;margin:0 auto;padding:0 20px}
+
+header{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#151b26,#0b0e14);position:sticky;top:0;z-index:50}
+.hd{display:flex;align-items:center;gap:14px;padding:16px 0}
+.logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--red),#ff7a3d);display:grid;place-items:center;font-size:19px;flex:none}
+h1{font-size:18px;font-weight:700;letter-spacing:.5px}
+.sub{font-size:12px;color:var(--dim)}
+.spacer{flex:1}
+.who{font-size:12px;color:var(--dim);text-align:right}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+.card h2{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .tag{font-size:11px;font-weight:400;color:var(--dim2);background:var(--panel2);padding:2px 8px;border-radius:20px}
+
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;color:var(--dim)}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px;outline:none}
+input:focus,textarea:focus{border-color:var(--blue)}
+input[type=number]{width:96px}
+textarea{width:100%;min-height:110px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+button{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:8px 14px;font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+button:hover{border-color:var(--dim2);background:#222a38}
+button.pri{background:var(--red);border-color:var(--red);color:#fff;font-weight:600}
+button.pri:hover{background:#e02742}
+button.gh{background:transparent}
+button:disabled{opacity:.45;cursor:not-allowed}
+.mini{font-size:12px;padding:5px 10px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-top:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--dim2)}
+.kpi.r::after{background:var(--red)}.kpi.g::after{background:var(--green)}
+.kpi.a::after{background:var(--amber)}.kpi.b::after{background:var(--blue)}.kpi.p::after{background:var(--purple)}
+.kpi .n{font-size:24px;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}
+.kpi .l{font-size:11px;color:var(--dim);margin-top:2px}
+
+.tabs{display:flex;gap:4px;margin-top:20px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{padding:10px 16px;font-size:13px;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab:hover{color:var(--txt)}
+.tab.on{color:var(--txt);border-bottom-color:var(--red);font-weight:600}
+.tab .c{font-size:11px;background:var(--panel2);padding:1px 7px;border-radius:20px;margin-left:6px;color:var(--dim)}
+.pane{display:none;padding-top:6px}
+.pane.on{display:block}
+
+.cl{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:12px;overflow:hidden}
+.cl-hd{padding:14px 16px;cursor:pointer;display:flex;gap:14px;align-items:flex-start}
+.cl-hd:hover{background:#161c27}
+.cl-rank{font-size:12px;color:var(--dim2);font-weight:700;min-width:22px;padding-top:2px}
+.cl-main{flex:1;min-width:0}
+.cl-name{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cl-mech{font-size:12px;color:var(--dim);margin-top:4px}
+.badge{font-size:10px;padding:2px 7px;border-radius:5px;font-weight:600;letter-spacing:.3px}
+.b-core{background:rgba(40,199,111,.15);color:var(--green)}
+.b-rev{background:rgba(255,176,32,.15);color:var(--amber)}
+.b-burst{background:rgba(160,107,255,.15);color:var(--purple)}
+.b-ex{background:rgba(139,150,171,.12);color:var(--dim)}
+.b-worth{background:rgba(255,46,77,.15);color:var(--red)}
+.cl-met{display:flex;gap:18px;text-align:right;flex-wrap:wrap;justify-content:flex-end}
+.met .v{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.met .k{font-size:10px;color:var(--dim2)}
+.cl-bd{display:none;border-top:1px solid var(--line);padding:14px 16px;background:#10151e}
+.cl.open .cl-bd{display:block}
+
+.simbar{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.sim{flex:1;min-width:140px}
+.sim .lb{font-size:11px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:3px}
+.track{height:5px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.fill{height:100%;border-radius:3px}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--dim);font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid #1b2130;vertical-align:top}
+tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.warn{color:var(--amber)}.ok{color:var(--green)}.mut{color:var(--dim2)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{font-size:11px;background:var(--panel2);border:1px solid var(--line);padding:2px 9px;border-radius:20px;color:var(--dim)}
+.chip.ev{border-color:rgba(255,176,32,.3);color:var(--amber)}
+.chip.pt{border-color:rgba(40,199,111,.3);color:var(--green)}
+
+.note{font-size:12px;color:var(--dim);background:var(--panel2);border-left:3px solid var(--blue);padding:10px 12px;border-radius:0 8px 8px 0;margin-top:10px}
+.empty{text-align:center;color:var(--dim2);padding:48px 20px;font-size:13px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#20293a;border:1px solid var(--line);padding:10px 20px;border-radius:24px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
+#toast.on{opacity:1}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:860px){.split{grid-template-columns:1fr}.cl-hd{flex-wrap:wrap}.cl-met{justify-content:flex-start}}
+</style>
+</head>
+<body>
+
+<header><div class="wrap hd">
+  <div class="logo">📡</div>
+  <div>
+    <h1>内容范式雷达 <span class="sub">Paradigm Radar</span></h1>
+    <div class="sub">常青词分层 → 三路特征聚类 → 双通道成簇 → 语义复核 → 四区呈现</div>
+  </div>
+  <div class="spacer"></div>
+  <a href="/nebula" style="font-size:13px;color:var(--txt);background:var(--panel2);border:1px solid var(--line);padding:7px 14px;border-radius:20px;text-decoration:none;margin-right:14px">✦ 星图灵感雷达</a>
+  <div class="who" id="who">加载中…</div>
+</div></header>
+
+<div class="wrap">
+
+  <!-- 数据源 -->
+  <div class="card">
+    <h2>① 数据源与口径 <span class="tag">仅保留有效笔记 · 点赞率/破圈系数不参与前置过滤</span></h2>
+    <div class="row">
+      <button class="pri" id="btnDemo">载入示例数据</button>
+      <button id="btnUpload">上传 CSV</button>
+      <input type="file" id="file" accept=".csv" style="display:none" />
+      <button class="gh" id="btnPaste">粘贴 JSON/CSV</button>
+      <div class="spacer"></div>
+      <span class="sub" id="srcInfo">未载入数据</span>
+    </div>
+    <div id="pasteBox" style="display:none;margin-top:12px">
+      <textarea id="pasteTxt" placeholder="粘贴 CSV（含表头）或 JSON 数组。字段：note_id,title,body,topics,author_id,publish_time,category,likes,views,fans,url（也支持中文表头：笔记ID/标题/正文/话题/作者ID/发布时间/类目/点赞/阅读/作者粉丝数/笔记链接）"></textarea>
+      <div class="row" style="margin-top:8px"><button class="mini pri" id="btnPasteOk">解析</button></div>
+    </div>
+  </div>
+
+  <!-- 参数 -->
+  <div class="card">
+    <h2>② 聚类与阈值参数 <span class="tag">标题 60% · 正文 15% · 话题 25%</span></h2>
+    <div class="row">
+      <div class="fld"><label>候选池点赞门槛</label><input type="number" id="pMinLikes" value="1000" /></div>
+      <div class="fld"><label>万赞单点阈值</label><input type="number" id="pBurst" value="10000" /></div>
+      <div class="fld"><label>综合相似度阈值</label><input type="number" id="pSim" value="0.22" step="0.01" /></div>
+      <div class="fld"><label>点赞率门槛</label><input type="number" id="pRate" value="0.10" step="0.01" /></div>
+      <div class="fld"><label>破圈系数门槛</label><input type="number" id="pBreak" value="3" step="0.5" /></div>
+      <div class="spacer"></div>
+      <button class="pri" id="btnRun" disabled>开始分析</button>
+      <button id="btnExport" disabled>导出 CSV</button>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis" style="display:none"></div>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="panes"></div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmt = n => (n ?? 0).toLocaleString('zh-CN');
+const pct = n => (n * 100).toFixed(1) + '%';
+let NOTES = [], RESULT = null, CFG = null;
+
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2200); }
+async function api(url, opt){
+  const r = await fetch(url, opt);
+  if(!r.ok){ const e = await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail || '请求失败'); }
+  return r;
+}
+
+/* ── 初始化 ── */
+(async () => {
+  try{
+    const d = await (await api('/api/me')).json();
+    $('#who').innerHTML = `<span class="dot" style="background:${d.db?'#28c76f':'#ffb020'}"></span>${d.user.name || d.user.email || '已登录'}<br>
+      <span style="font-size:11px;color:var(--dim2)">${d.db ? '数据集持久化已就绪' : '未接数据库 · 即席分析可用'}</span>`;
+  }catch(e){ $('#who').textContent = '未登录'; }
+  try{ CFG = await (await api('/api/config')).json(); }catch(e){}
+  renderTabs();
+})();
+
+/* ── 数据载入 ── */
+$('#btnDemo').onclick = async () => {
+  const d = await (await api('/api/demo')).json();
+  setNotes(d.notes, '示例数据');
+};
+$('#btnUpload').onclick = () => $('#file').click();
+$('#file').onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const fd = new FormData(); fd.append('file', f);
+  try{
+    const d = await (await api('/api/parse-csv', {method:'POST', body:fd})).json();
+    setNotes(d.notes, f.name);
+  }catch(err){ toast('解析失败：' + err.message); }
+};
+$('#btnPaste').onclick = () => {
+  const b = $('#pasteBox'); b.style.display = b.style.display === 'none' ? 'block' : 'none';
+};
+$('#btnPasteOk').onclick = () => {
+  const t = $('#pasteTxt').value.trim(); if(!t) return;
+  try{
+    let notes;
+    if(t[0] === '['){ notes = JSON.parse(t); }
+    else{
+      const lines = t.split(/\r?\n/).filter(x=>x.trim());
+      const sep = lines[0].includes('\t') ? '\t' : ',';
+      const hd = lines[0].split(sep).map(x=>x.trim().replace(/^"|"$/g,''));
+      notes = lines.slice(1).map(l => {
+        const c = l.split(sep); const o = {};
+        hd.forEach((h,i)=> o[h] = (c[i]||'').trim().replace(/^"|"$/g,''));
+        return o;
+      });
+    }
+    setNotes(notes, '粘贴数据'); $('#pasteBox').style.display='none';
+  }catch(err){ toast('解析失败：格式不正确'); }
+};
+function setNotes(n, src){
+  NOTES = n;
+  $('#srcInfo').textContent = `${src} · ${n.length} 条原始笔记`;
+  $('#btnRun').disabled = false;
+  toast(`已载入 ${n.length} 条`);
+}
+
+/* ── 运行 ── */
+$('#btnRun').onclick = async () => {
+  $('#btnRun').disabled = true; $('#btnRun').textContent = '计算中…';
+  try{
+    const params = {
+      min_likes:+$('#pMinLikes').value, burst_likes:+$('#pBurst').value,
+      sim_threshold:+$('#pSim').value, like_rate_gate:+$('#pRate').value,
+      breakout_gate:+$('#pBreak').value
+    };
+    RESULT = await (await api('/api/analyze', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({notes:NOTES, params})
+    })).json();
+    render();
+    $('#btnExport').disabled = false;
+    try{ localStorage.setItem('pr_last_result', JSON.stringify(RESULT)); }catch(e){}
+    toast('分析完成，可到星图面板投射成星空');
+  }catch(e){ toast('失败：' + e.message); }
+  $('#btnRun').disabled = false; $('#btnRun').textContent = '开始分析';
+};
+
+$('#btnExport').onclick = async () => {
+  const r = await api('/api/export', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({result:RESULT})});
+  const b = await r.blob(); const a = document.createElement('a');
+  a.href = URL.createObjectURL(b); a.download = 'paradigm_radar.csv'; a.click();
+};
+
+/* ── 渲染 ── */
+const TABS = [
+  {k:'core',  t:'核心范式',            d:'表达机制明确、跨作者成立'},
+  {k:'review',t:'人工复核 Cluster',    d:'已成簇，但与教程/活动/通用句式存在边界'},
+  {k:'burst', t:'万赞单点观察池',      d:'高价值早期信号，尚未发生跨作者跟发'},
+  {k:'excl',  t:'排除表',              d:'非万赞且不符合范式语义，保留供复盘'},
+  {k:'lex',   t:'常青词与规则',        d:''},
+  {k:'ds',    t:'数据集与每日快照',    d:'保存数据集后每天打一次快照，自动对比出「新出现 / 在放量 / 已消退」的范式'},
+];
+
+function renderTabs(){
+  $('#tabs').innerHTML = TABS.map((t,i)=>
+    `<div class="tab ${i===0?'on':''}" data-i="${i}">${t.t}<span class="c" id="c-${t.k}">–</span></div>`).join('');
+  $('#panes').innerHTML = TABS.map((t,i)=>
+    `<div class="pane ${i===0?'on':''}" id="p-${t.k}"><div class="empty">载入数据并点击「开始分析」</div></div>`).join('');
+  document.querySelectorAll('.tab').forEach(el => el.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+    el.classList.add('on');
+    $('#p-' + TABS[+el.dataset.i].k).classList.add('on');
+  });
+  renderLex();
+  renderDS();
+}
+
+/* ── 数据集与每日快照 ── */
+async function renderDS(){
+  $('#p-ds').innerHTML = `
+    <div class="note">保存数据集后每天打一次快照，面板会自动对比出「新出现 / 在放量 / 已消退」的范式。<br>
+      如需完全无人值守的每日自动更新，需要把上游取数（BI 数据集 / Hive 表）接进来，告诉我口径即可加定时任务。</div>
+    <div class="card"><h2>保存当前数据为数据集</h2>
+      <div class="row">
+        <div class="fld"><label>数据集名称</label><input id="dsName" placeholder="如：情感赛道-8月" /></div>
+        <div class="fld"><label>垂类</label><input id="dsVert" placeholder="如：摄影" /></div>
+        <div class="fld"><label>时间周期</label><input id="dsPeriod" placeholder="如：2026-08-01~08-31" /></div>
+        <button class="pri" id="btnSaveDs">保存</button>
+      </div>
+    </div>
+    <div class="card"><h2>我的数据集</h2><div id="dsList"><span class="mut">加载中…</span></div></div>
+    <div id="trendBox"></div>`;
+  $('#btnSaveDs').onclick = async () => {
+    if(!NOTES.length) return toast('请先载入数据');
+    const name = $('#dsName').value.trim(); if(!name) return toast('请填数据集名称');
+    try{
+      await api('/api/datasets', {method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name, vertical:$('#dsVert').value, period:$('#dsPeriod').value,
+          notes:NOTES, params:{min_likes:+$('#pMinLikes').value, burst_likes:+$('#pBurst').value, sim_threshold:+$('#pSim').value}})});
+      toast('已保存'); loadDs();
+    }catch(e){ toast(e.message); }
+  };
+  loadDs();
+}
+
+async function loadDs(){
+  try{
+    const d = await (await api('/api/datasets')).json();
+    $('#c-ds').textContent = d.datasets.length;
+    if(!d.datasets.length){ $('#dsList').innerHTML = '<span class="mut">还没有保存的数据集</span>'; return; }
+    $('#dsList').innerHTML = `<table><tr><th>名称</th><th>垂类</th><th>周期</th><th class="num">笔记</th><th class="num">快照</th><th>更新时间</th><th>操作</th></tr>` +
+      d.datasets.map(x=>`<tr><td>${esc(x.name)}</td><td class="mut">${esc(x.vertical||'–')}</td><td class="mut">${esc(x.period||'–')}</td>
+        <td class="num">${x.note_count}</td><td class="num">${x.snapshots}</td><td class="mut">${esc(x.updated_at.slice(0,16))}</td>
+        <td><button class="mini" data-load="${x.id}">载入</button>
+            <button class="mini" data-snap="${x.id}">打今日快照</button>
+            <button class="mini" data-trend="${x.id}">演进</button>
+            <button class="mini gh" data-del="${x.id}">删除</button></td></tr>`).join('') + '</table>';
+    $('#dsList').querySelectorAll('[data-load]').forEach(b=>b.onclick=async()=>{
+      const d2 = await (await api('/api/datasets/'+b.dataset.load)).json(); setNotes(d2.notes, d2.name);
+    });
+    $('#dsList').querySelectorAll('[data-snap]').forEach(b=>b.onclick=async()=>{
+      try{ const r = await (await api('/api/datasets/'+b.dataset.snap+'/snapshot',{method:'POST'})).json();
+        toast('快照已记录 '+r.snap_date); loadDs(); }catch(e){ toast(e.message); }
+    });
+    $('#dsList').querySelectorAll('[data-trend]').forEach(b=>b.onclick=()=>showTrend(b.dataset.trend));
+    $('#dsList').querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
+      if(!confirm('确认删除该数据集及其全部快照？')) return;
+      await api('/api/datasets/'+b.dataset.del,{method:'DELETE'}); loadDs();
+    });
+  }catch(e){ $('#dsList').innerHTML = `<span class="mut">${esc(e.message)}</span>`; }
+}
+
+async function showTrend(id){
+  try{
+    const t = await (await api('/api/datasets/'+id+'/trend')).json();
+    const sec = (title, arr, color, extra) => `<div style="margin-bottom:12px"><div style="font-size:12px;color:${color};font-weight:600">${title} (${arr.length})</div>
+      ${arr.length ? '<div class="chips">'+arr.map(c=>`<span class="chip">${esc(c.name)} · ${c.note_count}篇${extra&&c.delta?' ▲'+c.delta:''}</span>`).join('')+'</div>' : '<span class="mut" style="font-size:12px">无</span>'}</div>`;
+    $('#trendBox').innerHTML = `<div class="card"><h2>范式演进 <span class="tag">最近 ${t.snapshots.length} 个快照</span></h2>
+      ${sec('新出现的范式', t.diff.new, 'var(--green)')}
+      ${sec('规模在放量', t.diff.grown, 'var(--amber)', true)}
+      ${sec('已消退', t.diff.faded, 'var(--dim)')}
+      <table style="margin-top:8px"><tr><th>快照日期</th><th class="num">有效笔记</th><th class="num">核心范式</th><th class="num">人工复核</th><th class="num">万赞单点</th><th class="num">覆盖率</th></tr>
+      ${t.snapshots.map(s=>`<tr><td>${s.date}</td><td class="num">${s.overview.valid_notes}</td><td class="num">${s.overview.core_clusters}</td>
+        <td class="num">${s.overview.review_clusters}</td><td class="num">${s.overview.burst_candidates+s.overview.burst_reviews}</td>
+        <td class="num">${pct(s.overview.coverage)}</td></tr>`).join('')}</table></div>`;
+    $('#trendBox').scrollIntoView({behavior:'smooth'});
+  }catch(e){ toast(e.message); }
+}
+
+function render(){
+  const o = RESULT.overview;
+  $('#kpis').style.display = 'grid';
+  $('#kpis').innerHTML = [
+    ['r', o.valid_notes, '有效笔记'],
+    ['b', o.authors, '独立作者'],
+    ['g', o.core_clusters, '核心范式'],
+    ['a', o.review_clusters, '人工复核'],
+    ['p', o.burst_candidates + o.burst_reviews, '万赞单点'],
+    ['', o.excluded_clusters, '排除 Cluster'],
+    ['', o.isolated_notes, '孤立点'],
+    ['r', o.worth_doing, '达标可做工'],
+    ['b', pct(o.coverage), '范式覆盖率'],
+  ].map(([c,n,l]) => `<div class="kpi ${c}"><div class="n">${typeof n==='number'?fmt(n):n}</div><div class="l">${l}</div></div>`).join('');
+
+  const burst = [
+    ...RESULT.burst_candidate.map(c=>({...c, _sub:'有效万赞单点-范式候选'})),
+    ...RESULT.burst_review.map(c=>({...c, _sub:'需复核万赞单点'}))
+  ];
+  $('#c-core').textContent = RESULT.core.length;
+  $('#c-review').textContent = RESULT.review.length;
+  $('#c-burst').textContent = burst.length;
+  $('#c-excl').textContent = RESULT.excluded.length;
+  $('#c-lex').textContent = Object.keys(RESULT.stopwords).length;
+
+  paint('core', RESULT.core, 'core');
+  paint('review', RESULT.review, 'rev');
+  paint('burst', burst, 'burst');
+  paint('excl', RESULT.excluded, 'ex');
+}
+
+function paint(pane, list, kind){
+  const meta = TABS.find(t=>t.k===pane);
+  const head = meta.d ? `<div class="note">${meta.d}${pane==='burst'?'。已进入核心范式或人工复核的万赞笔记不在此重复展示。':''}</div>` : '';
+  if(!list.length){ $('#p-'+pane).innerHTML = head + '<div class="empty">当前参数下无结果</div>'; return; }
+  $('#p-'+pane).innerHTML = head + list.map((c,i)=>card(c,i,kind)).join('');
+  document.querySelectorAll('#p-'+pane+' .cl-hd').forEach(el =>
+    el.onclick = () => el.parentElement.classList.toggle('open'));
+}
+
+function card(c, i, kind){
+  const bl = {core:['b-core','核心范式'], rev:['b-rev','人工复核'], burst:['b-burst', c._sub||'万赞单点'], ex:['b-ex','已排除']}[kind];
+  const sim = (label, v, color) => `<div class="sim"><div class="lb"><span>${label}</span><span>${(v*100).toFixed(0)}%</span></div>
+    <div class="track"><div class="fill" style="width:${Math.min(100,v*100)}%;background:${color}"></div></div></div>`;
+  return `<div class="cl">
+    <div class="cl-hd">
+      <div class="cl-rank">${String(i+1).padStart(2,'0')}</div>
+      <div class="cl-main">
+        <div class="cl-name">${esc(c.name)}
+          <span class="badge ${bl[0]}">${bl[1]}</span>
+          ${c.worth_doing ? '<span class="badge b-worth">指标达标</span>' : ''}
+        </div>
+        <div class="cl-mech">${esc(c.mechanism)}</div>
+        ${c.review_reason ? `<div class="cl-mech warn">⚠ ${esc(c.review_reason)}</div>` : ''}
+      </div>
+      <div class="cl-met">
+        <div class="met"><div class="v">${c.note_count}</div><div class="k">笔记</div></div>
+        <div class="met"><div class="v">${c.author_count}</div><div class="k">独立作者</div></div>
+        <div class="met"><div class="v">${fmt(c.likes_median)}</div><div class="k">赞中位数</div></div>
+        <div class="met"><div class="v ${c.like_rate_median>=0.1?'ok':'mut'}">${pct(c.like_rate_median)}</div><div class="k">点赞率</div></div>
+        <div class="met"><div class="v ${c.breakout_median>=3?'ok':'mut'}">${c.breakout_median}</div><div class="k">破圈系数</div></div>
+      </div>
+    </div>
+    <div class="cl-bd">
+      <div class="simbar">
+        ${sim('标题一致性 60%', c.title_sim, 'var(--red)')}
+        ${sim('正文一致性 15%', c.body_sim, 'var(--blue)')}
+        ${sim('话题一致性 25%', c.topic_sim, 'var(--purple)')}
+        ${sim('综合相似度',     c.overall_sim, 'var(--green)')}
+      </div>
+      ${c.slots?.length ? `<div style="font-size:12px;color:var(--dim)">可替换槽位：${c.slots.map(s=>`<span class="chip">${esc(s)}</span>`).join(' ')}</div>` : ''}
+      ${c.top_topics?.length ? `<div class="chips">${c.top_topics.map(([t,n])=>`<span class="chip">#${esc(t)} ×${n}</span>`).join('')}</div>` : ''}
+      <table style="margin-top:12px">
+        <tr><th>标题</th><th>作者</th><th class="num">点赞</th><th class="num">阅读</th><th class="num">粉丝</th>
+            <th class="num">点赞率</th><th class="num">破圈</th><th>发布</th><th>链接</th></tr>
+        ${c.notes.map(n=>`<tr>
+          <td>${esc(n.title)}</td><td class="mut">${esc(n.author_id)}</td>
+          <td class="num">${fmt(n.likes)}</td><td class="num">${fmt(n.views)}</td><td class="num">${fmt(n.fans)}</td>
+          <td class="num ${n.like_rate>=0.1?'ok':'mut'}">${pct(n.like_rate)}</td>
+          <td class="num ${n.breakout>=3?'ok':'mut'}">${n.breakout}</td>
+          <td class="mut">${esc(n.publish_time)}</td>
+          <td>${n.url?`<a href="${esc(n.url)}" target="_blank">打开</a>`:'<span class="mut">–</span>'}</td>
+        </tr>`).join('')}
+      </table>
+    </div>
+  </div>`;
+}
+
+function renderLex(){
+  if(!CFG) return;
+  const sw = Object.entries(CFG.stopwords).map(([k,v])=>
+    `<div style="margin-bottom:10px"><div style="font-size:12px;color:var(--dim)">${k}</div>
+     <div class="chips">${v.map(w=>`<span class="chip ev">${esc(w)}</span>`).join('')}</div></div>`).join('');
+  const pr = `<div class="chips">${CFG.protected.map(w=>`<span class="chip pt">${esc(w)}</span>`).join('')}</div>`;
+  const sy = `<div class="chips">${Object.entries(CFG.synonyms).map(([a,b])=>`<span class="chip">${esc(a)} → ${esc(b)}</span>`).join('')}</div>`;
+  const rl = CFG.rules.map(r=>`<tr><td>${esc(r.label)}</td><td class="mut">${r.words.map(esc).join(' / ')}</td></tr>`).join('');
+  $('#p-lex').innerHTML = `
+    <div class="split">
+      <div class="card" style="margin-top:12px"><h2>常青词分层 <span class="tag">仅降权（×0.15），不删除原文</span></h2>${sw}</div>
+      <div>
+        <div class="card" style="margin-top:12px"><h2>受保护词 <span class="tag">不机械拆词，保持全权重</span></h2>${pr}
+          <div class="note">如「摄影」可降权，但「摄影师」作为叙事角色必须保留；新造词（如「离网感」）进人工词表。</div></div>
+        <div class="card"><h2>同义归一化</h2>${sy}</div>
+      </div>
+    </div>
+    <div class="card"><h2>范式语义排除规则 <span class="tag">命中则不直接认定为范式 → 转人工复核</span></h2>
+      <table><tr><th style="width:220px">规则</th><th>触发词</th></tr>${rl}
+      <tr><td>同一句文案复用但无可替换槽位</td><td class="mut">标题完全一致</td></tr>
+      <tr><td>单账号官方/KOL系列内容</td><td class="mut">独立作者数 = 1</td></tr></table>
+      <div class="note">同一作者的系列内容最多贡献一个独立作者信号，避免系列号虚增规模。</div>
+    </div>`;
+}
+
+function esc(s){ return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+</script>
+</body>
+</html>

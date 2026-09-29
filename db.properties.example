@@ -1,0 +1,6 @@
+# Optional: leave absent to use demo graph + instant analysis only.
+# db.host=localhost
+# db.port=5432
+# db.username=postgres
+# db.password=replace-me
+# db.database=paradigm_radar

@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>灵感星图雷达 · 公开演示版</title>
+<style>
+:root{
+  --paper:#faf8f5; --ink:#1a1a1c; --ink2:#5c5c66; --ink3:#9a9aa6; --rule:#e6e2db;
+  --void:#080b12; --void2:#0d1220;
+  --core:#ffd48a; --review:#7fc4ff; --motif:#ff8fb1; --excl:#5a6272; --insp:#9ef0c8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font:14px/1.7 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+a{color:inherit}
+.wrap{max-width:1280px;margin:0 auto;padding:0 28px}
+.mono{font-family:ui-monospace,Menlo,monospace;letter-spacing:.14em;font-size:10px;color:var(--ink3);text-transform:uppercase}
+
+/* header */
+.top{border-bottom:1px solid var(--rule);background:rgba(250,248,245,.92);backdrop-filter:blur(8px);position:sticky;top:0;z-index:60}
+.top .wrap{display:flex;align-items:center;gap:16px;height:56px}
+.brand{font-weight:700;letter-spacing:.5px}
+.nav{display:flex;gap:4px;margin-left:auto}
+.nav a,.nav button.tabbtn{font-size:13px;color:var(--ink2);padding:6px 14px;border-radius:20px;text-decoration:none;
+  background:transparent;border:none;cursor:pointer;font-family:inherit;line-height:1.7}
+.nav a:hover,.nav button.tabbtn:hover{background:#f0ece5}
+.nav a.on,.nav button.tabbtn.on{background:var(--ink);color:var(--paper)}
+#viewRadar{display:none;position:fixed;left:0;right:0;top:56px;bottom:0;z-index:40;background:var(--paper)}
+#viewRadar iframe{width:100%;height:100%;border:0;display:block}
+#viewRadar .ldg{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink3);font-size:13px;pointer-events:none}
+body.radar-on #viewNebula{display:none}
+body.radar-on #viewRadar{display:block}
+body.radar-on{overflow:hidden}
+
+/* hero */
+.hero{padding:46px 0 26px}
+.hero h1{font-size:40px;font-weight:800;letter-spacing:-.5px;line-height:1.2}
+.hero .lead{color:var(--ink2);margin-top:12px;max-width:660px;font-size:15px}
+.hero .meta{margin-top:14px;display:flex;gap:18px;flex-wrap:wrap}
+
+.sec{margin-top:14px}
+.sec-hd{display:flex;align-items:baseline;gap:12px;padding-bottom:12px}
+.sec-hd h2{font-size:21px;font-weight:700}
+.sec-hd .en{font-size:11px;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase}
+.sec-hd .sp{flex:1}
+
+/* starfield */
+.sky{position:relative;border-radius:16px;overflow:hidden;background:var(--void);box-shadow:0 18px 50px rgba(10,12,20,.22)}
+#cv{display:block;width:100%;height:660px;cursor:grab}
+#cv.drag{cursor:grabbing}
+.sky-bar{position:absolute;left:0;right:0;top:0;display:flex;gap:8px;align-items:center;padding:16px 18px;flex-wrap:wrap;pointer-events:none}
+.sky-bar>*{pointer-events:auto}
+.pill{font-size:11.5px;color:#cdd6e8;background:rgba(20,26,40,.72);border:1px solid rgba(255,255,255,.10);
+  padding:6px 14px;border-radius:22px;cursor:pointer;display:flex;align-items:center;gap:7px;user-select:none;transition:.15s;
+  backdrop-filter:blur(6px)}
+.pill:hover{border-color:rgba(255,255,255,.24)}
+.pill.off{opacity:.32}
+.pill i{width:7px;height:7px;border-radius:50%;display:block;box-shadow:0 0 7px currentColor}
+.pill em{font-style:normal;color:#6f7a90;font-size:10.5px}
+.pill b{font-weight:600;color:#eef2fa;font-size:11px;margin-left:1px}
+.btn-sky{font-size:10.5px;letter-spacing:.16em;color:#aab5c9;background:transparent;border:1px solid rgba(255,255,255,.16);
+  padding:7px 16px;border-radius:22px;cursor:pointer;text-transform:uppercase;transition:.15s}
+.btn-sky:hover{border-color:rgba(255,255,255,.4);color:#fff}
+.btn-sky.on{border-color:rgba(255,214,138,.6);color:#ffd68a}
+.sky-foot{position:absolute;right:18px;bottom:16px;text-align:right;pointer-events:none}
+#skyQ{pointer-events:auto;width:290px;background:rgba(18,24,38,.75);border:1px solid rgba(255,255,255,.12);
+  color:#dde4f2;border-radius:22px;padding:9px 18px;font-size:12px;backdrop-filter:blur(6px)}
+#skyQ::placeholder{color:#5b6478}
+.sky-legend{font-size:10px;color:#5b6478;line-height:1.9;margin-top:10px;letter-spacing:.04em}
+.sky-tip{position:absolute;left:18px;bottom:16px;font-size:10px;color:#4e5769;letter-spacing:.14em}
+#tip{position:absolute;pointer-events:none;background:rgba(10,14,22,.95);border:1px solid rgba(255,255,255,.16);
+  border-radius:9px;padding:8px 11px;font-size:12px;color:#e8edf7;max-width:270px;opacity:0;transition:.1s;z-index:5}
+#tip b{display:block;font-size:13px;margin-bottom:3px}
+#tip s{display:block;text-decoration:none;color:#8b97ad;font-size:11px}
+select,input,textarea{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px;color:var(--ink);outline:none}
+select:focus,input:focus,textarea:focus{border-color:var(--ink2)}
+.sky-bar select,.sky-bar input{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.13);color:#e8edf7;font-size:11px;padding:4px 9px}
+.sky-bar select option{color:#111}
+
+button{background:var(--ink);border:1px solid var(--ink);color:var(--paper);border-radius:8px;padding:8px 15px;font:inherit;font-size:13px;cursor:pointer}
+button:hover{opacity:.86}
+button.gh{background:transparent;color:var(--ink);border-color:var(--rule)}
+button.gh:hover{background:#f0ece5;opacity:1}
+button.mini{padding:4px 10px;font-size:12px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:12px;overflow:hidden;margin-top:16px}
+.stat{background:var(--paper);padding:16px 18px}
+.stat .n{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .n small{font-size:13px;font-weight:600;color:var(--ink3)}
+.stat .k{font-size:10px;letter-spacing:.14em;color:var(--ink3);text-transform:uppercase;margin-top:4px}
+.stat .d{font-size:11px;color:var(--ink3);margin-top:3px}
+
+/* ranking */
+.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:16px}
+.box{border:1px solid var(--rule);border-radius:12px;background:#fff;padding:16px 18px}
+.box h3{font-size:13px;font-weight:700;margin-bottom:2px}
+.box .hint{font-size:11px;color:var(--ink3);margin-bottom:12px}
+.rank{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid #f1ede6;cursor:pointer}
+.rank:last-child{border-bottom:none}
+.rank:hover .rt{text-decoration:underline}
+.rk{font:700 11px/1 ui-monospace,monospace;color:var(--ink3);width:18px}
+.rdot{width:9px;height:9px;border-radius:50%;flex:none}
+.rt{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs{font:700 13px/1 ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.bar{height:3px;background:#f1ede6;border-radius:2px;margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:2px}
+
+/* drawer */
+#dw{position:fixed;top:0;right:0;bottom:0;width:min(520px,92vw);background:#fff;border-left:1px solid var(--rule);
+  box-shadow:-18px 0 50px rgba(0,0,0,.12);transform:translateX(102%);transition:transform .28s cubic-bezier(.4,0,.2,1);z-index:80;overflow-y:auto}
+#dw.on{transform:none}
+.dw-hd{padding:22px 24px 16px;border-bottom:1px solid var(--rule);position:sticky;top:0;background:#fff;z-index:2}
+.dw-hd .x{position:absolute;right:18px;top:18px;cursor:pointer;color:var(--ink3);font-size:20px;line-height:1}
+.dw-bd{padding:20px 24px 60px}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden;margin-bottom:18px}
+.kv div{background:#fff;padding:10px 12px}
+.kv .v{font:700 16px/1.2 ui-monospace,monospace}
+.kv .l{font-size:10px;color:var(--ink3);margin-top:3px}
+.rep h4{font-size:12px;letter-spacing:.1em;color:var(--ink3);text-transform:uppercase;margin:16px 0 6px}
+.rep p{font-size:13.5px;color:#2c2c32}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{font-size:11px;border:1px solid var(--rule);background:#faf8f5;padding:2px 9px;border-radius:20px;color:var(--ink2)}
+.linkrow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid #f1ede6;font-size:13px;cursor:pointer}
+.linkrow:hover{color:#000}
+.lstr{font:700 11px/1 ui-monospace,monospace;color:var(--ink3);width:34px;text-align:right}
+#mask{position:fixed;inset:0;background:rgba(20,20,24,.28);opacity:0;pointer-events:none;transition:.28s;z-index:70}
+#mask.on{opacity:1;pointer-events:auto}
+
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:4px}
+.fld label{font-size:11px;color:var(--ink3)}
+.fld input,.fld textarea{min-width:200px}
+textarea{width:100%;min-height:70px;font-size:13px}
+.note{font-size:12px;color:var(--ink2);background:#fff;border-left:3px solid var(--ink);padding:11px 14px;border-radius:0 8px 8px 0;margin-top:12px}
+code{background:#f1ede6;padding:1px 6px;border-radius:4px;font-size:12px}
+pre{background:var(--void);color:#cbd5e8;padding:14px 16px;border-radius:10px;overflow-x:auto;font-size:11.5px;line-height:1.65;margin-top:10px}
+footer{margin-top:56px;border-top:1px solid var(--rule);padding:22px 0 46px;color:var(--ink3);font-size:11px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);
+  padding:10px 20px;border-radius:24px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:99}
+#toast.on{opacity:1}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}.hero h1{font-size:30px}#cv{height:440px}}
+</style>
+</head>
+<body>
+
+<div class="top"><div class="wrap">
+  <span class="brand">星图灵感雷达</span>
+  <span class="mono">Nebula Inspiration Radar</span>
+  <nav class="nav">
+    <button class="tabbtn on" id="tabNebula">星图</button>
+    <span class="tabbtn" style="cursor:default;color:var(--ink3)">公开演示版</span>
+    <a href="https://cowork.xiaohongshu.com/s/fanshi-radar/" target="_blank" title="在新标签页打开范式雷达" style="color:var(--ink3);padding:6px 8px">↗</a>
+  </nav>
+</div></div>
+
+
+
+<div class="wrap" id="viewNebula">
+
+  <div class="hero">
+    <div class="mono">01 / NEBULA</div>
+    <h1>把灵感、选题和 AI 抓到的范式<br>放进同一片星空</h1>
+    <p class="lead">
+      每一颗星是一个内容范式或一条灵感。AI 每周把「只有一两个人发、但数据特别好」的范式送进星空，
+      同选题、同用户情绪、同表达机制的星体自动连成星座——联系越强，星座越亮。点击任意一颗星，出一份小报告。
+    </p>
+    <div class="meta">
+      <span class="mono" id="mWeek">WEEK · —</span>
+      <span class="mono" id="mSrc">SOURCE · —</span>
+      <span class="mono" id="mAi">REPORT · —</span>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sky">
+      <canvas id="cv"></canvas>
+      <div class="sky-bar" id="skybar"></div>
+      <div id="tip"></div>
+      <div class="sky-tip">选题星云图 · 情感赛道 · 星图灵感雷达</div>
+      <div class="sky-foot">
+        <input id="skyQ" placeholder="搜索范式 / 标题 / 灵感" />
+        <div class="sky-legend">
+          一颗星 = 一个聚类 · 星型/亮度 = 分层与价值分<br>
+          连线 = 关系（母题归属 / 机制近似 / 灵感关联）<br>
+          拖动平移 · 滚轮缩放 · 悬停查看 · 点击详情
+        </div>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><h2>本周值得做工</h2><span class="en">Worth Operating</span><span class="sp"></span>
+      <span class="mono">按运营价值分排序</span></div>
+    <div class="grid2">
+      <div class="box">
+        <h3>星体打分榜</h3>
+        <div class="hint">数据表现 40 + 破圈能力 25 + 可复制性 20 + 早期信号 15</div>
+        <div id="rankList"></div>
+      </div>
+      <div class="box">
+        <h3>最亮的星座</h3>
+        <div class="hint">联系最强的范式对，通常意味着一个更大的母题正在成形</div>
+        <div id="relList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><h2>拖一颗灵感星进来</h2><span class="en">Add Inspiration</span></div>
+    <div class="box">
+      <div class="row">
+        <div class="fld"><label>标题 / 一句话灵感</label><input id="iTitle" placeholder="如：把选题会毙掉的「县城婚礼」再试一次" /></div>
+        <div class="fld"><label>链接（可选）</label><input id="iUrl" placeholder="笔记或视频链接" /></div>
+        <div class="fld"><label>关联的范式（可多选）</label><select id="iRel" multiple size="1" style="min-width:220px"></select></div>
+        <button id="iAdd">点亮</button>
+      </div>
+      <div class="fld" style="margin-top:10px"><label>为什么想做 / 它的机制是什么</label>
+        <textarea id="iDesc" placeholder="选填。写了之后 AI 判定联系会更准，也会进小报告。"></textarea></div>
+      <div class="note">也可以直接把链接或一段文字<b>拖拽到上方星空里</b>，会自动建一颗灵感星。</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hd"><h2>和抓取面板怎么联动</h2><span class="en">Integration</span></div>
+    <div class="box">
+      <p style="font-size:13.5px;color:var(--ink2)">
+        你小伙伴那套 AI 周更抓取（高赞 / 高搜索 / 高互动、且只有一两个人发的范式），
+        跑完之后把结果推进来，星星和星座就会自动出现在上面的星空里。
+      </p>
+      <div class="kv" style="grid-template-columns:repeat(3,1fr);margin-top:14px">
+        <div><div class="v" style="font-size:13px">必填</div>
+          <div class="l" style="line-height:1.8">标题 · 唯一 ID · 点赞 · 阅读 · 发布时粉丝数 · 笔记数 · 独立作者数</div></div>
+        <div><div class="v" style="font-size:13px">强烈建议填</div>
+          <div class="l" style="line-height:1.8">内容机制 · 话题 · 目标人群——这三个直接决定星座连得准不准</div></div>
+        <div><div class="v" style="font-size:13px">可不填</div>
+          <div class="l" style="line-height:1.8">分层（默认落成伴星）· 情绪标签（系统按词典自动识别）· 关系（开自动连线就不用传）</div></div>
+      </div>
+      <div class="note" style="margin-top:12px">完整字段说明和调用示例已写进方案文档，直接发给对接同学即可，面板上不再展示代码。</div>
+      <div class="row" style="margin-top:12px">
+        
+        
+        
+      </div>
+      <div id="importBox" style="display:none" style="display:none;margin-top:10px">
+        <textarea id="importTxt" placeholder='{"week":"2026-W36","stars":[...]}'></textarea>
+        <div class="row" style="margin-top:8px"><button class="mini" id="btnImportOk">导入</button></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>星图灵感雷达 · 星体分层沿用范式雷达四区口径：恒星=核心范式，星胚=人工复核，伴星=母题变体/万赞单点，尘埃=排除表。报告由 AI 生成，仅供参考。</footer>
+</div>
+
+<div id="mask"></div>
+<div id="dw">
+  <div class="dw-hd"><span class="x" id="dwX">×</span>
+    <div class="mono" id="dwLayer">—</div>
+    <h2 id="dwTitle" style="font-size:21px;font-weight:700;margin-top:5px">—</h2>
+    <div class="tags" id="dwTags"></div>
+  </div>
+  <div class="dw-bd">
+    <div class="kv" id="dwKv"></div>
+    <div id="dwMech" style="font-size:13px;color:var(--ink2);margin-bottom:6px"></div>
+    <div class="rep" id="dwRep"></div>
+    <h4 style="font-size:12px;letter-spacing:.1em;color:var(--ink3);text-transform:uppercase;margin:22px 0 4px">星座联系</h4>
+    <div id="dwRel"></div>
+    <div class="row" style="margin-top:22px">
+      <button class="gh mini" id="dwRegen">重新生成报告</button>
+      <button class="gh mini" id="dwOpen">打开原笔记</button>
+      <button class="gh mini" id="dwDel" style="color:#b3261e">移除这颗星</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+(function(){
+const $ = s => document.getElementById(s);
+const LAYER = {
+  core:  {name:'恒星', sub:'可放大',  label:'恒星 · 核心范式',   color:'#ffd15c', r:1.00, spikes:4},
+  review:{name:'星胚', sub:'待判定',  label:'星胚 · 待复核',     color:'#b3a4ff', r:0.74, spikes:0},
+  motif: {name:'伴星', sub:'归母题',  label:'伴星 · 母题变体/万赞单点', color:'#ff9db4', r:0.80, spikes:0},
+  excl:  {name:'尘埃', sub:'非范式',  label:'尘埃 · 已排除',     color:'#7b8296', r:0.38, spikes:0},
+  insp:  {name:'灵感星', sub:'个人灵感', label:'灵感星 · 人工拖入', color:'#4fe0d0', r:0.66, spikes:4},
+};
+
+/* ── 同步 demo 数据（fetch 到真实数据后替换）── */
+const DEMO_CL = [
+  {id:'c0',layer:'core',title:'离网感摄影师',score:71,note_count:3,author_count:3,likes:19000,topics:['人像','陌生人','县城'],emotions:['被看见/共鸣'],mechanism:'创作者以「离网感摄影师」身份进入陌生场域，随机拍陌生人并讲出对方的故事'},
+  {id:'c1',layer:'core',title:'游客照祛魅',score:83,note_count:6,author_count:5,likes:31000,topics:['游客照','反差','旅行'],emotions:['祛魅/反叛'],mechanism:'把标准游客照拍成反差版本，先立标准再打破'},
+  {id:'c2',layer:'core',title:'我好像拍到了⋯⋯',score:74,note_count:4,author_count:4,likes:24000,topics:['瞬间','抓拍','陌生人'],emotions:['窥私/好奇'],mechanism:'以「我好像拍到了」开头制造悬念'},
+  {id:'c3',layer:'core',title:'反向旅游',score:76,note_count:5,author_count:5,likes:22000,topics:['反向旅游','小城','旅行'],emotions:['祛魅/反叛','松弛/治愈'],mechanism:'刻意去没人知道的小城，不打卡不赶路'},
+  {id:'c4',layer:'core',title:'左脑VS右脑互搏',score:78,note_count:4,author_count:4,likes:29000,topics:['脑力挑战','反差'],emotions:['祛魅/反叛'],mechanism:'设定一个身体对抗任务，全程记录翻车过程'},
+  {id:'c5',layer:'review',title:'氛围感人像教程',score:52,note_count:3,author_count:3,likes:14500,topics:['摄影教程','姿势'],emotions:[],mechanism:'拆解3个姿势教用户拍出氛围感'},
+  {id:'c6',layer:'review',title:'夏日征集活动',score:33,note_count:4,author_count:4,likes:10750,topics:['官方活动','征集'],emotions:[],mechanism:'官方话题活动驱动的投稿合集'},
+  {id:'c7',layer:'review',title:'手账拼贴教程',score:45,note_count:3,author_count:2,likes:9800,topics:['手工','手账','教程'],emotions:[],mechanism:'材料清单+步骤图的标准教程结构'},
+  {id:'c8',layer:'review',title:'城市漫步路线攻略',score:48,note_count:3,author_count:3,likes:11200,topics:['城市漫步','攻略','路线'],emotions:[],mechanism:'以路线为骨架串联店铺与景点'},
+  {id:'c9',layer:'motif',title:'生命力版游客照',score:88,note_count:1,author_count:1,likes:48000,topics:['游客照','反差','生命力'],emotions:['祛魅/反叛'],mechanism:'游客照祛魅的母题变体：用动态抓拍替代摆拍'},
+  {id:'c10',layer:'excl',title:'县城观察日记（系列）',score:21,note_count:3,author_count:1,likes:4200,topics:['县城观察'],emotions:['怀旧/情感联结'],mechanism:'单账号连载系列，未形成跨作者跟发'},
+  {id:'c11',layer:'excl',title:'相机新品开箱',score:26,note_count:2,author_count:2,likes:14000,topics:['开箱','测评'],emotions:[],mechanism:'品牌/产品驱动，非表达框架'},
+  {id:'c12',layer:'excl',title:'某景区门票攻略',score:23,note_count:2,author_count:2,likes:5600,topics:['景点','攻略'],emotions:[],mechanism:'单一目的地驱动'},
+  {id:'c13',layer:'excl',title:'修图软件安利',score:22,note_count:2,author_count:2,likes:4800,topics:['修图','工具'],emotions:[],mechanism:'工具驱动'},
+  {id:'c14',layer:'excl',title:'明星同款穿搭',score:25,note_count:3,author_count:3,likes:7300,topics:['穿搭','明星'],emotions:[],mechanism:'IP/人物驱动'},
+];
+const DEMO_REL = [
+  {a:'c1',b:'c9',strength:.92,kinds:['motif'],reason:'母题变体：生命力版是游客照祛魅的直接衍生'},
+  {a:'c1',b:'c0',strength:.58,kinds:['emotion','audience'],reason:'同用户情绪：祛魅/反叛'},
+  {a:'c1',b:'c2',strength:.51,kinds:['mechanism'],reason:'同表达机制：先建立预期再打破'},
+  {a:'c0',b:'c2',strength:.46,kinds:['topic','mechanism'],reason:'同选题：陌生人抓拍'},
+  {a:'c3',b:'c1',strength:.40,kinds:['emotion'],reason:'同用户情绪：对标准化体验的祛魅'},
+  {a:'c5',b:'c7',strength:.36,kinds:['mechanism'],reason:'同表达机制：教程式步骤结构'},
+  {a:'c0',b:'c3',strength:.31,kinds:['emotion'],reason:'同用户情绪：松弛'},
+];
+const DEMO_INSP = [{id:'demo1',title:'示例灵感星：拖一条链接或一句话进来',
+  desc:'选题会没过的想法、刷到的好范式、临时冒出来的念头，都可以拖进星空。填上它关联的范式，就会自动连成星座。',
+  url:'',relatedIds:['c0','c1'],demo:true}];
+
+let CL = DEMO_CL.slice(), REL = DEMO_REL.slice(), inspData = DEMO_INSP.slice();
+let nodes = [], inspNodes = [], AI_ON = false, IS_DEMO = true;
+const filter = {core:true, review:true, motif:true, excl:false, insp:true};
+let query = '';
+
+/* ── 图工具 ── */
+function allEdges(){ return REL.concat(inspEdges()); }
+function inspEdges(){
+  const out = [];
+  const ids = new Set(CL.map(c=>c.id));
+  inspData.forEach(i => (i.relatedIds||[]).forEach(r => { if(ids.has(r)) out.push({a:i.id,b:r,strength:.62,kinds:['manual'],reason:'人工标注的关联'}); }));
+  return out;
+}
+function neighborsOf(id){
+  const s = new Set();
+  allEdges().forEach(e => { if(e.a===id) s.add(e.b); else if(e.b===id) s.add(e.a); });
+  return s;
+}
+function findNode(key){ return nodes.concat(inspNodes).find(n => n.key===key) || null; }
+function nodeVisible(n){
+  if(!n) return false;
+  if(!filter[n.layer]) return false;
+  if(query && !(n.title||'').toLowerCase().includes(query.toLowerCase())) return false;
+  return true;
+}
+
+/* ── 布局：确定性力导向 ── */
+function seedRand(s){ let x = s; return () => (x = (x*1103515245+12345) & 0x7fffffff) / 0x7fffffff; }
+function layout(){
+  const rnd = seedRand(20260902);
+  const all = CL.map(c => ({...c, key:c.id, isInsp:false}))
+    .concat(inspData.map(i => ({id:i.id, key:i.id, layer:'insp', title:i.title, mechanism:i.desc||'',
+      topics:[], emotions:[], score:i.score||40, note_count:1, author_count:1, likes:i.likes||0,
+      url:i.url||'', isInsp:true, demo:i.demo})));
+  const idx = {}; all.forEach((n,i)=>{ idx[n.key]=i;
+    const a = rnd()*Math.PI*2, r = 90 + rnd()*230;
+    n.x = Math.cos(a)*r; n.y = Math.sin(a)*r*0.66; n.vx = 0; n.vy = 0;
+  });
+  const E = allEdges().filter(e => idx[e.a]!==undefined && idx[e.b]!==undefined);
+  for(let it=0; it<260; it++){
+    for(let i=0;i<all.length;i++){
+      for(let j=i+1;j<all.length;j++){
+        const A=all[i],B=all[j]; let dx=B.x-A.x, dy=B.y-A.y;
+        let d2 = dx*dx+dy*dy || .01; const d = Math.sqrt(d2);
+        const rep = 5200/d2;
+        A.vx -= dx/d*rep; A.vy -= dy/d*rep; B.vx += dx/d*rep; B.vy += dy/d*rep;
+      }
+    }
+    E.forEach(e=>{
+      const A=all[idx[e.a]], B=all[idx[e.b]];
+      const dx=B.x-A.x, dy=B.y-A.y, d=Math.sqrt(dx*dx+dy*dy)||.01;
+      const target = 120 - e.strength*55;
+      const f = (d-target)*0.012*(0.4+e.strength);
+      A.vx += dx/d*f; A.vy += dy/d*f; B.vx -= dx/d*f; B.vy -= dy/d*f;
+    });
+    all.forEach(n=>{
+      n.vx -= n.x*0.0016; n.vy -= n.y*0.0030;
+      n.x += n.vx*0.5; n.y += n.vy*0.5; n.vx*=0.72; n.vy*=0.72;
+    });
+  }
+  all.forEach(n=>{ n.r = (2.2 + (n.score||40)/100*10) * (LAYER[n.layer]?LAYER[n.layer].r:.7);
+    n.tw = rnd()*Math.PI*2; });
+  nodes = all.filter(n=>!n.isInsp);
+  inspNodes = all.filter(n=>n.isInsp);
+}
+function rebuildInsp(){ layout(); }
+
+/* ── 渲染 ── */
+const cv = $('cv');
+const ctx = cv.getContext('2d');
+let view = {x:0, y:0, k:1}, hover = null, sel = null, dragging = false, last = null, t0 = 0;
+let W = 1200, H = 660, dpr = 1, rot = 0, autoRotate = true;
+
+function resize(){
+  if(!cv.clientWidth) return;
+  dpr = window.devicePixelRatio || 1;
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W*dpr; cv.height = H*dpr;
+  if(ctx.setTransform) ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function toScreen(n){
+  const c = Math.cos(rot), s = Math.sin(rot);
+  const rx = n.x*c - n.y*s, ry = n.x*s + n.y*c;
+  return {x: W/2 + (rx+view.x)*view.k, y: H/2 + (ry+view.y)*view.k};
+}
+
+/* 画一颗星：按分层给不同星型 */
+function paintStar(p, r, col, L, opts){
+  const a = opts.alpha, sel = opts.sel, tw = opts.tw;
+  // 外层辉光
+  ctx.globalAlpha = a * .95;
+  const halo = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,r*5.2);
+  halo.addColorStop(0, col);
+  halo.addColorStop(.16, hexA(col,.55));
+  halo.addColorStop(.42, hexA(col,.14));
+  halo.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(p.x,p.y,r*5.2,0,6.284); ctx.fill();
+
+  // 衍射星芒（恒星 / 灵感星）
+  if(L.spikes){
+    const len = r*(L.spikes===4 ? 7.2 : 5) * tw;
+    const g2 = ctx.createLinearGradient(p.x-len,p.y,p.x+len,p.y);
+    g2.addColorStop(0,'rgba(0,0,0,0)'); g2.addColorStop(.5,hexA(col,.75)); g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.globalAlpha = a*.85; ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.moveTo(p.x-len,p.y); ctx.lineTo(p.x,p.y-r*.55);
+    ctx.lineTo(p.x+len,p.y); ctx.lineTo(p.x,p.y+r*.55); ctx.closePath(); ctx.fill();
+    const vlen = len*.62;
+    const g3 = ctx.createLinearGradient(p.x,p.y-vlen,p.x,p.y+vlen);
+    g3.addColorStop(0,'rgba(0,0,0,0)'); g3.addColorStop(.5,hexA(col,.62)); g3.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = g3;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y-vlen); ctx.lineTo(p.x+r*.5,p.y);
+    ctx.lineTo(p.x,p.y+vlen); ctx.lineTo(p.x-r*.5,p.y); ctx.closePath(); ctx.fill();
+  }
+
+  // 灵感星：外圈准星环
+  if(L.name==='灵感星'){
+    ctx.globalAlpha = a*.8; ctx.strokeStyle = col; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,r*2.3,0,6.284); ctx.stroke();
+    ctx.globalAlpha = a*.35;
+    ctx.beginPath(); ctx.arc(p.x,p.y,r*3.4,0,6.284); ctx.stroke();
+  }
+
+  // 核心
+  ctx.globalAlpha = a;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(p.x,p.y,Math.max(.7, r*(L.name==='尘埃'?.34:.62)),0,6.284); ctx.fill();
+
+  if(sel){
+    ctx.globalAlpha = .85; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,r*4.2,0,6.284); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+function hexA(hex, a){
+  const h = hex.replace('#','');
+  const n = parseInt(h.length===3 ? h.split('').map(c=>c+c).join('') : h, 16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
+}
+
+function draw(){
+  t0 += .016;
+  if(autoRotate && !dragging) rot += .00042;
+  ctx.clearRect(0,0,W,H);
+
+  // 深空底 + 暖色星云
+  ctx.fillStyle = '#070a13'; ctx.fillRect(0,0,W,H);
+  const neb = ctx.createRadialGradient(W*.46,H*.72,0,W*.46,H*.72,W*.42);
+  neb.addColorStop(0,'rgba(58,44,26,.30)'); neb.addColorStop(.55,'rgba(28,26,44,.14)'); neb.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = neb; ctx.fillRect(0,0,W,H);
+
+  // 背景星尘
+  const rnd = seedRand(7);
+  for(let i=0;i<260;i++){
+    const x = rnd()*W, y = rnd()*H, sz = rnd()>.93 ? 1.7 : 1;
+    ctx.globalAlpha = (.05 + rnd()*.30) * (0.55 + 0.45*Math.sin(t0*0.6 + i*1.7));
+    ctx.fillStyle = '#aebbd6'; ctx.fillRect(x, y, sz, sz);
+  }
+  ctx.globalAlpha = 1;
+
+  const vis = {}; nodes.concat(inspNodes).forEach(n => { if(nodeVisible(n)) vis[n.key] = n; });
+  const hoverSet = hover ? neighborsOf(hover.key) : null;
+
+  // 星座连线：母题归属/灵感关联走虚线，机制近似走实线
+  allEdges().forEach(e=>{
+    const A = vis[e.a], B = vis[e.b]; if(!A||!B) return;
+    const p = toScreen(A), q = toScreen(B);
+    const focus = hover && (e.a===hover.key || e.b===hover.key);
+    const dim = hover && !focus;
+    const kinds = e.kinds || [];
+    const dashed = kinds.indexOf('manual')>=0 || kinds.indexOf('motif')>=0 || e.strength < .45;
+    const glow = .14 + e.strength*.55;
+    ctx.globalAlpha = (dim ? glow*.14 : glow) * (0.86 + 0.14*Math.sin(t0*1.1 + e.strength*9));
+    ctx.strokeStyle = focus ? '#ffe3a8' : (dashed ? '#8f9ab5' : '#c8b48a');
+    ctx.lineWidth = (0.4 + e.strength*1.5) * (focus?1.6:1);
+    if(ctx.setLineDash) ctx.setLineDash(dashed ? [3,5] : []);
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.stroke();
+  });
+  if(ctx.setLineDash) ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  // 星体（先尘埃后恒星，保证亮星在上层）
+  const order = {excl:0, review:1, motif:2, insp:3, core:4};
+  Object.values(vis).sort((a,b)=>(order[a.layer]||0)-(order[b.layer]||0)).forEach(n=>{
+    const p = toScreen(n), L = LAYER[n.layer] || LAYER.excl;
+    const dim = hover && n.key!==hover.key && !(hoverSet && hoverSet.has(n.key));
+    const tw = 0.84 + 0.16*Math.sin(t0*1.5 + n.tw);
+    const r = n.r*view.k*tw;
+    const base = n.layer==='excl' ? .42 : (n.layer==='review' ? .82 : 1);
+    paintStar(p, r, L.color, L, {alpha: (dim?.18:base), sel: !!(sel && sel.key===n.key), tw});
+
+    const named = n.layer==='core' || n.layer==='insp' || (hover && n.key===hover.key);
+    if(named && view.k>.5){
+      ctx.globalAlpha = dim ? .16 : (n.layer==='core' ? .82 : .74);
+      ctx.fillStyle = n.layer==='insp' ? '#8fe8dd' : '#dfe6f5';
+      ctx.font = '11.5px -apple-system,PingFang SC,sans-serif';
+      const txt = n.layer==='insp' ? n.title.slice(0,12) : '「'+n.title.slice(0,12)+'」';
+      ctx.fillText(txt, p.x + r*3.0 + 4, p.y + 4);
+      ctx.globalAlpha = 1;
+    }
+  });
+  if(window.requestAnimationFrame) window.requestAnimationFrame(draw);
+}
+
+function pick(mx,my){
+  let best = null, bd = 26;
+  nodes.concat(inspNodes).forEach(n=>{
+    if(!nodeVisible(n)) return;
+    const p = toScreen(n), d = Math.hypot(p.x-mx, p.y-my);
+    if(d < Math.max(12, n.r*view.k*2.2) && d < bd){ bd = d; best = n; }
+  });
+  return best;
+}
+
+/* ── 交互 ── */
+if(cv.addEventListener){
+  cv.addEventListener('mousemove', ev=>{
+    const b = cv.getBoundingClientRect(), mx = ev.clientX-b.left, my = ev.clientY-b.top;
+    if(dragging && last){ view.x += (mx-last.x)/view.k; view.y += (my-last.y)/view.k; last={x:mx,y:my}; return; }
+    hover = pick(mx,my);
+    const tip = $('tip');
+    if(hover){
+      const L = LAYER[hover.layer]||LAYER.excl;
+      tip.innerHTML = `<b>${esc(hover.title)}</b><s>${L.label} · 价值分 ${hover.score||'—'} · ${hover.note_count}篇/${hover.author_count}作者</s>
+        <div style="margin-top:5px;color:#b8c3d6;font-size:11px">${esc((hover.mechanism||'').slice(0,58))}</div>`;
+      tip.style.left = Math.min(mx+14, W-284)+'px'; tip.style.top = (my+14)+'px'; tip.style.opacity = 1;
+    } else tip.style.opacity = 0;
+  });
+  cv.addEventListener('mousedown', ev=>{
+    const b = cv.getBoundingClientRect(); last = {x:ev.clientX-b.left, y:ev.clientY-b.top};
+    dragging = true; cv.classList.add('drag');
+  });
+  cv.addEventListener('mouseup', ev=>{
+    dragging = false; cv.classList.remove('drag');
+    const b = cv.getBoundingClientRect(), mx = ev.clientX-b.left, my = ev.clientY-b.top;
+    if(last && Math.hypot(mx-last.x, my-last.y) < 4){ const n = pick(mx,my); if(n) openStar(n); }
+  });
+  cv.addEventListener('mouseleave', ()=>{ dragging=false; hover=null; $('tip').style.opacity=0; });
+  cv.addEventListener('wheel', ev=>{
+    ev.preventDefault();
+    view.k = Math.max(.35, Math.min(3, view.k * (ev.deltaY>0 ? .9 : 1.11)));
+  }, {passive:false});
+  cv.addEventListener('dragover', ev=>ev.preventDefault());
+  cv.addEventListener('drop', ev=>{
+    ev.preventDefault();
+    const txt = (ev.dataTransfer && (ev.dataTransfer.getData('text/uri-list') || ev.dataTransfer.getData('text'))) || '';
+    if(!txt.trim()) return;
+    const isUrl = /^https?:\/\//.test(txt.trim());
+    addStar({title: isUrl ? '拖入的链接：'+txt.trim().slice(0,42) : txt.trim().slice(0,60),
+             url: isUrl ? txt.trim() : '', desc:'', relatedIds:[]});
+  });
+}
+if(window.addEventListener) window.addEventListener('resize', ()=>{ resize(); });
+
+/* ── 面板 ── */
+function esc(s){ return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function toast(m){ const t=$('toast'); t.textContent=m; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2200); }
+
+function renderBar(){
+  const counts = {};
+  nodes.concat(inspNodes).forEach(n=>counts[n.layer]=(counts[n.layer]||0)+1);
+  $('skybar').innerHTML = Object.keys(LAYER).map(k=>
+    `<span class="pill ${filter[k]?'':'off'}" data-l="${k}"><i style="background:${LAYER[k].color};color:${LAYER[k].color}"></i>${LAYER[k].name} <em>${LAYER[k].sub}</em> <b>${counts[k]||0}</b></span>`
+  ).join('') + `<span style="flex:1"></span>
+    <select id="weekSel" style="background:rgba(20,26,40,.72);border:1px solid rgba(255,255,255,.10);color:#cdd6e8;border-radius:22px;padding:6px 12px;font-size:11px"><option value="">全部周次</option></select>
+    <button class="btn-sky" id="btnUp">+ 上传灵感</button>
+    <button class="btn-sky ${autoRotate?'on':''}" id="btnRot">Auto Rotate</button>
+    <button class="btn-sky" id="btnReset">Reset</button>`;
+  document.querySelectorAll('.pill[data-l]').forEach(el=>el.onclick=()=>{
+    filter[el.dataset.l] = !filter[el.dataset.l]; renderBar(); renderRank();
+  });
+  const rs = $('btnReset');
+  if(rs) rs.onclick = ()=>{ view={x:0,y:0,k:1}; rot=0; };
+  const rt = $('btnRot');
+  if(rt) rt.onclick = ()=>{ autoRotate = !autoRotate; renderBar(); };
+  const up = $('btnUp');
+  if(up) up.onclick = ()=>{ const t = $('iTitle'); if(t && t.scrollIntoView){ t.scrollIntoView({behavior:'smooth', block:'center'}); if(t.focus) t.focus(); } };
+  const ws = $('weekSel');
+  if(ws){ ws.onchange = e => load(e.target.value); }
+  const sq = $('skyQ');
+  if(sq) sq.oninput = e => { query = e.target.value; renderRank(); };
+}
+
+function renderStats(){
+  const vis = nodes.concat(inspNodes).filter(nodeVisible);
+  const core = nodes.filter(n=>n.layer==='core').length;
+  const motif = nodes.filter(n=>n.layer==='motif').length;
+  const insp = inspNodes.length;
+  const strong = allEdges().filter(e=>e.strength>=.5).length;
+  const top = nodes.slice().sort((a,b)=>(b.score||0)-(a.score||0))[0];
+  const emo = {}; nodes.forEach(n=>(n.emotions||[]).forEach(e=>emo[e]=(emo[e]||0)+1));
+  const topEmo = Object.entries(emo).sort((a,b)=>b[1]-a[1])[0];
+  $('stats').innerHTML = [
+    ['STARS · 星体总数', vis.length+'<small> 颗</small>', '当前过滤下可见'],
+    ['CORE · 恒星', core+'<small> 个</small>', '跨作者成立的核心范式'],
+    ['MOTIF · 伴星', motif+'<small> 个</small>', '只有一两人发但数据很好'],
+    ['INSPIRATION · 灵感星', insp+'<small> 颗</small>', '人工拖入的灵感与废案'],
+    ['CONSTELLATION · 强联系', strong+'<small> 条</small>', '强度 ≥ 0.5 的星座连线'],
+    ['TOP · 最亮的星', top?`<span style="font-size:17px">${esc(top.title.slice(0,8))}</span>`:'—', top?`价值分 ${top.score}`:''],
+    ['EMOTION · 主导情绪', topEmo?`<span style="font-size:17px">${esc(topEmo[0])}</span>`:'—', topEmo?`${topEmo[1]} 个范式共享`:''],
+  ].map(([k,n,d])=>`<div class="stat"><div class="n">${n}</div><div class="k">${k}</div><div class="d">${d}</div></div>`).join('');
+}
+
+function renderRank(){
+  const list = nodes.concat(inspNodes).filter(nodeVisible).sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,10);
+  $('rankList').innerHTML = list.map((n,i)=>{
+    const col = (LAYER[n.layer]||LAYER.excl).color;
+    return `<div class="rank" data-k="${esc(n.key)}">
+      <span class="rk">${String(i+1).padStart(2,'0')}</span>
+      <span class="rdot" style="background:${col}"></span>
+      <span class="rt">${esc(n.title)}<div class="bar"><i style="width:${n.score||0}%;background:${col}"></i></div></span>
+      <span class="rs">${n.score||0}</span></div>`;
+  }).join('') || '<div class="hint">当前过滤下没有星体</div>';
+  document.querySelectorAll('#rankList .rank').forEach(el=>el.onclick=()=>{
+    const n = findNode(el.dataset.k); if(n) openStar(n);
+  });
+
+  const rl = allEdges().slice().sort((a,b)=>b.strength-a.strength).slice(0,8);
+  $('relList').innerHTML = rl.map(e=>{
+    const A = findNode(e.a), B = findNode(e.b); if(!A||!B) return '';
+    return `<div class="linkrow" data-a="${esc(e.a)}">
+      <span class="lstr">${e.strength.toFixed(2)}</span>
+      <span style="flex:1">${esc(A.title.slice(0,10))} <span style="color:var(--ink3)">✦</span> ${esc(B.title.slice(0,10))}
+        <div style="font-size:11px;color:var(--ink3)">${esc(e.reason||'')}</div></span></div>`;
+  }).join('') || '<div class="hint">还没有星座连线</div>';
+  document.querySelectorAll('#relList .linkrow').forEach(el=>el.onclick=()=>{
+    const n = findNode(el.dataset.a); if(n) openStar(n);
+  });
+
+  const sel = $('iRel');
+  if(sel) sel.innerHTML = nodes.map(n=>`<option value="${esc(n.key)}">${esc(n.title)}</option>`).join('');
+}
+
+/* ── 星体报告抽屉 ── */
+async function openStar(n){
+  sel = n;
+  $('dw').classList.add('on'); $('mask').classList.add('on');
+  const L = LAYER[n.layer]||LAYER.excl;
+  $('dwLayer').textContent = L.label;
+  $('dwTitle').textContent = n.title;
+  $('dwTags').innerHTML = (n.topics||[]).map(t=>`<span class="tag">#${esc(t)}</span>`).join('')
+    + (n.emotions||[]).map(t=>`<span class="tag" style="border-color:#d8c9a8;background:#fdf8ec">${esc(t)}</span>`).join('');
+  $('dwKv').innerHTML = [
+    [n.score||'—','运营价值分'],[n.note_count||1,'笔记数'],[n.author_count||1,'独立作者'],
+    [(n.likes||0)>=10000?((n.likes/10000).toFixed(1)+'w'):(n.likes||0),'点赞中位数']
+  ].map(([v,l])=>`<div><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+  $('dwMech').textContent = n.mechanism || '';
+  const nb = [...neighborsOf(n.key)];
+  $('dwRel').innerHTML = nb.length ? nb.map(k=>{
+    const m = findNode(k); if(!m) return '';
+    const e = allEdges().find(x=>(x.a===n.key&&x.b===k)||(x.b===n.key&&x.a===k)) || {strength:0,reason:''};
+    return `<div class="linkrow" data-k="${esc(k)}"><span class="lstr">${e.strength.toFixed(2)}</span>
+      <span style="flex:1">${esc(m.title)}<div style="font-size:11px;color:var(--ink3)">${esc(e.reason||'')}</div></span></div>`;
+  }).join('') : '<div class="hint" style="font-size:12px;color:var(--ink3)">这颗星还没连上任何星座</div>';
+  document.querySelectorAll('#dwRel .linkrow').forEach(el=>el.onclick=()=>{
+    const m = findNode(el.dataset.k); if(m) openStar(m);
+  });
+  $('dwRep').innerHTML = '<div class="hint" style="color:var(--ink3)">正在生成小报告…</div>';
+  await loadReport(n, false);
+}
+async function loadReport(n, force){
+  try{
+    const r = await fetch('/api/nebula/report', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({star:{id:n.key,title:n.title,layer:n.layer,mechanism:n.mechanism,topics:n.topics,
+        emotions:n.emotions,note_count:n.note_count,author_count:n.author_count,likes:n.likes,
+        views:n.views,fans:n.fans,samples:n.samples}, force:!!force})});
+    const d = await r.json();
+    const rep = d.report || {};
+    const order = ['为什么火','用户心智','可复制的表达框架','运营切入点','风险与边界'];
+    $('dwRep').innerHTML = order.filter(k=>rep[k]).map(k=>`<h4>${k}</h4><p>${esc(rep[k])}</p>`).join('')
+      + `<div style="font-size:11px;color:var(--ink3);margin-top:14px">${rep._source==='ai'?'AI 生成，仅供参考':'口径报告（未接 AI 文本网关时的降级输出）'}${rep._note?' · '+esc(rep._note):''}</div>`;
+  }catch(e){ $('dwRep').innerHTML = '<p style="color:#b3261e">报告生成失败：'+esc(e.message)+'</p>'; }
+}
+$('dwX').onclick = $('mask').onclick = ()=>{ $('dw').classList.remove('on'); $('mask').classList.remove('on'); sel=null; };
+$('dwRegen').onclick = ()=>{ if(sel){ $('dwRep').innerHTML='<div class="hint">重新生成中…</div>'; loadReport(sel,true);} };
+$('dwOpen').onclick = ()=>{ if(sel&&sel.url) window.open(sel.url,'_blank'); else toast('这颗星没有原链接'); };
+$('dwDel').onclick = async ()=>{
+  if(!sel) return;
+  if(!confirm('从星空移除「'+sel.title+'」？')) return;
+  try{ await fetch('/api/nebula/star/'+encodeURIComponent(sel.key), {method:'DELETE'});
+    toast('已移除'); $('dwX').onclick(); load(); }catch(e){ toast(e.message); }
+};
+
+/* ── 新增灵感星 ── */
+async function addStar(o){
+  try{
+    const r = await fetch('/api/nebula/star', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({title:o.title, url:o.url||'', mechanism:o.desc||'', relatedIds:o.relatedIds||[]})});
+    if(!r.ok) throw new Error((await r.json()).detail||'失败');
+    toast('灵感星已点亮'); load();
+  }catch(e){
+    inspData.push({id:'i'+Date.now(), title:o.title, desc:o.desc||'', url:o.url||'', relatedIds:o.relatedIds||[]});
+    rebuildInsp(); renderStats(); renderRank();
+    toast('已在本地点亮（未写库：'+e.message+'）');
+  }
+}
+$('iAdd').onclick = ()=>{
+  const t = $('iTitle').value.trim(); if(!t) return toast('先写一句灵感');
+  const rel = [...$('iRel').selectedOptions].map(o=>o.value);
+  addStar({title:t, url:$('iUrl').value.trim(), desc:$('iDesc').value.trim(), relatedIds:rel});
+  $('iTitle').value=''; $('iUrl').value=''; $('iDesc').value='';
+};
+
+/* ── 联动 ── */
+const _relink=$('btnRelink'); if(_relink) _relink.onclick = async ()=>{
+  try{ const d = await (await fetch('/api/nebula/relink',{method:'POST'})).json();
+    toast('已重算 '+d.relations+' 条连线'); load(); }catch(e){ toast('失败：'+e.message); }
+};
+const _pull=$('btnPullParadigm'); if(_pull) _pull.onclick = async ()=>{
+  const raw = localStorage.getItem('pr_last_result');
+  if(!raw) return toast('先去「范式雷达」跑一次分析');
+  try{
+    const d = await (await fetch('/api/nebula/from-paradigm',{method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({result: JSON.parse(raw), week: weekTag()})})).json();
+    toast('已投射 '+d.ingested+' 颗星'); load();
+  }catch(e){ toast('失败：'+e.message); }
+};
+const _import=$('btnImport'); if(_import) _import.onclick = ()=>{ const b=$('importBox'); b.style.display = b.style.display==='none'?'block':'none'; };
+const _importOk=$('btnImportOk'); if(_importOk) _importOk.onclick = async ()=>{
+  try{
+    const body = JSON.parse($('importTxt').value);
+    const d = await (await fetch('/api/nebula/ingest',{method:'POST',headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)})).json();
+    toast('导入 '+d.ingested+' 颗星 / '+d.relations+' 条连线'); load();
+  }catch(e){ toast('导入失败：'+e.message); }
+};
+function weekTag(){
+  const d = new Date(), y = d.getFullYear();
+  const st = new Date(y,0,1), w = Math.ceil(((d-st)/86400000 + st.getDay()+1)/7);
+  return y+'-W'+String(w).padStart(2,'0');
+}
+/* ── 载入 ── */
+async function load(week){
+  // Public edition intentionally uses bundled demo data only.
+  IS_DEMO = true; AI_ON = false;
+  $('mWeek').textContent = 'WEEK · DEMO';
+  $('mSrc').textContent = 'SOURCE · 公开演示数据（本地可互动）';
+  $('mAi').textContent = 'REPORT · 规则报告模式';
+  layout(); renderBar(); renderStats(); renderRank();
+}
+
+/* ── 顶部双面板切换（星图 / 范式雷达，同一个页面）── */
+const RADAR_URL = 'https://cowork.xiaohongshu.com/s/fanshi-radar/';
+let radarLoaded = false;
+function showRadar(on){
+  if(document.body && document.body.classList) document.body.classList.toggle('radar-on', on);
+  if($('tabRadar')) $('tabRadar').classList.toggle('on', on);
+  $('tabNebula').classList.toggle('on', !on);
+  if(on && !radarLoaded){
+    radarLoaded = true;
+    const f = document.createElement('iframe');
+    f.src = RADAR_URL;
+    f.setAttribute('allow','clipboard-write');
+    const v=$('viewRadar'); if(v) v.appendChild(f);
+  }
+  try{ if(typeof location !== 'undefined') location.hash = on ? 'radar' : ''; }catch(e){}
+}
+const radarTab=$('tabRadar'); if(radarTab) radarTab.onclick = ()=>showRadar(true);
+const nebulaTab=$('tabNebula'); if(nebulaTab) nebulaTab.onclick = ()=>showRadar(false);
+try{ if(typeof location !== 'undefined' && location.hash === '#radar') showRadar(true); }catch(e){}
+
+/* ── 启动 ── */
+layout(); renderBar(); renderStats(); renderRank();
+if(cv.getContext){ resize(); if(window.requestAnimationFrame) window.requestAnimationFrame(draw); }
+load();
+
+/* ── 测试契约 ── */
+window.__X = {
+  get CL(){ return CL; }, get REL(){ return REL; },
+  get inspData(){ return inspData; }, set inspData(v){ inspData = v; },
+  get inspNodes(){ return inspNodes; }, get nodes(){ return nodes; },
+  inspEdges, neighborsOf, findNode, nodeVisible, rebuildInsp, layout,
+  LAYER, filter,
+};
+})();
+</script>
+</body>
+</html>

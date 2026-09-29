@@ -1,0 +1,3 @@
+# Optional: leave absent to use the built-in rule-based report.
+# ai.base_url=https://your-ai-gateway.example.com
+# ai.api_key=replace-me
